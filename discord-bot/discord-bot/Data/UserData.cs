@@ -1,4 +1,6 @@
-﻿namespace discord_bot.Data
+﻿using System;
+
+namespace discord_bot.Data
 {
     public class UserData
     {

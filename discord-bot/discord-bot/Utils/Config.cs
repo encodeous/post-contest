@@ -7,8 +7,8 @@
         /// </summary>
         public static bool NeverShutDown = true;
 
-        public static string DefaultPrefix = "!";
-        public static string BotName = "Default-Bot";
+        public static string DefaultPrefix = "-";
+        public static string BotName = "Post Contest";
         // Help Generator Configuration
         /// <summary>
         /// Should a help page/command be hidden if the user can't use it?
@@ -17,6 +17,6 @@
         /// <summary>
         /// Should error messages be shown when commands are run?
         /// </summary>
-        public static bool ShowErrorMessages = true;
+        public static bool ShowErrorMessages = false;
     }
 }
