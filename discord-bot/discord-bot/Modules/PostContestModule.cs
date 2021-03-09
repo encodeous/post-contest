@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using discord_bot.Services;
+using discord_bot.Utils;
 
 namespace discord_bot.Modules
 {
@@ -32,12 +33,12 @@ namespace discord_bot.Modules
             }
         }
 
-        public string Convert(string input)
+        public string Clean(string input)
         {
             string s = "";
             foreach (var c in input)
             {
-                if (char.IsDigit(c) || char.IsLetter(c) || c == ' ' || c == '-')
+                if (char.IsDigit(c) || ('a' <= c && c <= 'z') || c == ' ' || c == '-')
                 {
                     s += c;
                 }
@@ -54,7 +55,17 @@ namespace discord_bot.Modules
                 return;
             }
 
-            var name = Convert(contestName);
+            if (data.ActiveChannels.Count >= Config.MaxChannels)
+            {
+                await ReplyAsync($"Exceeded channel limit of {Config.MaxChannels}");
+                return;
+            }
+            var name = Clean(contestName);
+            if (string.IsNullOrEmpty(name))
+            {
+                await ReplyAsync($"Please enter a contest name that is not empty!");
+                return;
+            }
             if (data.ActiveChannels.ContainsKey(name))
             {
                 await ReplyAsync($"Contest with name `{name}` already exists!");
@@ -81,7 +92,12 @@ namespace discord_bot.Modules
             }
 
             if (!MentionUtils.TryParseChannel(channelMention, out var cid)) return;
-            var name = Convert(contestName);
+            var name = Clean(contestName);
+            if (string.IsNullOrEmpty(name))
+            {
+                await ReplyAsync($"Please enter a contest name that is not empty!");
+                return;
+            }
             if (data.ActiveChannels.ContainsKey(name))
             {
                 await ReplyAsync($"Contest with name `{name}` already exists!");
@@ -109,7 +125,7 @@ namespace discord_bot.Modules
                 return;
             }
 
-            var name = Convert(contestName);
+            var name = Clean(contestName);
             if (!data.ActiveChannels.ContainsKey(name))
             {
                 await ReplyAsync($"Contest with name `{name}` does not exist!");
@@ -133,7 +149,7 @@ namespace discord_bot.Modules
                 return;
             }
 
-            var name = Convert(contestName);
+            var name = Clean(contestName);
             if (!data.ActiveChannels.ContainsKey(name))
             {
                 await ReplyAsync($"Contest with name `{name}` does not exist!");
@@ -159,11 +175,23 @@ namespace discord_bot.Modules
 
             var eb = new EmbedBuilder();
             eb.Title = "Current Contests:";
-            
+            var values = new List<string>();
+            int len = 0;
             foreach (var channels in data.ActiveChannels)
             {
-                eb.Description += $"`{channels.Key}` — {MentionUtils.MentionChannel(channels.Value)}\n";
+                if (len + channels.Key.Length + 10 < 2000)
+                {
+                    values.Add(channels.Key);
+                    len += channels.Key.Length + 10;
+                }
+                else
+                {
+                    eb.Title += " (truncated)";
+                    break;
+                }
             }
+
+            eb.Description = string.Join(", ", values);
             await ReplyAsync(embed:eb.Build());
         }
         [Command("publish"), Summary("Make a post-contest channel public"), RequireUserPermission(GuildPermission.ManageRoles)]
@@ -176,7 +204,7 @@ namespace discord_bot.Modules
                 return;
             }
 
-            var name = Convert(contestName);
+            var name = Clean(contestName);
             if (!data.ActiveChannels.ContainsKey(name))
             {
                 await ReplyAsync($"Contest with name `{name}` does not exist!");
@@ -190,6 +218,8 @@ namespace discord_bot.Modules
             {
                 if (context.User.Id == Context.User.Id)
                 {
+                    Events.OnUserMessage -= del;
+                    del = null;
                     if (context.Message.Content == "yes")
                     {
                         ReplyAsync("Publishing Channel...").Wait();
@@ -205,9 +235,6 @@ namespace discord_bot.Modules
                     {
                         ReplyAsync("Cancelled");
                     }
-
-                    Events.OnUserMessage -= del;
-                    del = null;
                 }
                 return true;
             };
@@ -232,7 +259,7 @@ namespace discord_bot.Modules
                 return;
             }
 
-            var name = Convert(contestName);
+            var name = Clean(contestName);
             if (!data.ActiveChannels.ContainsKey(name))
             {
                 await ReplyAsync($"Contest with name `{name}` does not exist!");
@@ -248,6 +275,8 @@ namespace discord_bot.Modules
                 {
                     if (context.User.Id == Context.User.Id)
                     {
+                        Events.OnUserMessage -= del;
+                        del = null;
                         if (context.Message.Content == "yes")
                         {
                             await ReplyAsync("Deleting Channel...");
@@ -267,9 +296,6 @@ namespace discord_bot.Modules
                         {
                             await ReplyAsync("Cancelled");
                         }
-
-                        Events.OnUserMessage -= del;
-                        del = null;
                     }
                 });
                 return true;
@@ -299,7 +325,7 @@ namespace discord_bot.Modules
             var spl = contestName.Split(",");
             foreach (var contest in spl)
             {
-                var name = Convert(contest);
+                var name = Clean(contest);
                 if (data.ActiveChannels.ContainsKey(name))
                 {
                     val.Add(name);
@@ -321,6 +347,8 @@ namespace discord_bot.Modules
                 {
                     if (context.User.Id == Context.User.Id)
                     {
+                        Events.OnUserMessage -= del;
+                        del = null;
                         if (context.Message.Content == "yes")
                         {
                             await ReplyAsync("Deleting Channels...");
@@ -338,16 +366,13 @@ namespace discord_bot.Modules
                                 
                                 }
 
-                                await Task.Delay(100);
+                                await Task.Delay(500);
                             }
                         }
                         else
                         {
                             await ReplyAsync("Cancelled");
                         }
-
-                        Events.OnUserMessage -= del;
-                        del = null;
                     }
                 });
                 return true;

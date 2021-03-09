@@ -17,6 +17,8 @@
         /// <summary>
         /// Should error messages be shown when commands are run?
         /// </summary>
-        public static bool ShowErrorMessages = false;
+        public static bool ShowErrorMessages = true;
+
+        public static int MaxChannels = 20;
     }
 }
